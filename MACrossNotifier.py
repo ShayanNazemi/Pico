@@ -1,8 +1,8 @@
-import numpy as np
+import time
 import pandas as pd
-import threading
 import requests
 from binance.client import Client
+
 
 class MACrossNotifier:
     def __init__(self, symbol='BTCUSDT'):
