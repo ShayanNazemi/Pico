@@ -12,8 +12,8 @@ if __name__ == '__main__':
         while True:
             t = pd.Timestamp(time.time(), unit='s')
             m, s = t.minute, t.second
+            print(f"({t}) Looping ...")
             if m % 5 == 0 and 0 < s < 2:
-                print(f"({t}) Looping ...")
                 if pd.Timestamp(time.time(), unit='s') - last_call > pd.Timedelta(seconds=100):
                     last_call = pd.Timestamp(time.time(), unit='s')
                     t_btc = threading.Thread(target=btc_notifier.signal)
