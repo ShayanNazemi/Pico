@@ -1,8 +1,8 @@
 from flask import Flask
-# from run import run
+from run import run
 
 application = Flask(__name__)
-# run()
+run()
 
 
 @application.route('/')
