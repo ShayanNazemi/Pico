@@ -2,7 +2,6 @@ import time
 import threading
 import pandas as pd
 from flask import Flask
-from flask_cors import CORS
 from MACrossNotifier import MACrossNotifier
 
 application = Flask(__name__)
@@ -35,7 +34,6 @@ def run():
     except Exception as e:
         print('THE END')
 
-
-@application.route("/")
-def index():
-    return "Hello from Pico Agent!"
+@application.route('/')
+def main_route():
+    return "Hello World!"
