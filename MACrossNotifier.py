@@ -49,6 +49,7 @@ class MACrossNotifier:
 
     def send_message(self, message):
         params = f"?chat_id={self.chat_id}&text={message}"
+        print(message)
         try:
             res = requests.get(self.bot_endpoint + params, timeout=10)
         except Exception as e:
