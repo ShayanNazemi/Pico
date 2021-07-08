@@ -26,26 +26,30 @@ class MACrossNotifier:
         return klines
 
     def signal(self):
-        print(f"Called on : {pd.Timestamp(int(time.time()), unit='s')}")
-        price = self.fetch()
-        price['ma50'] = price.close.rolling(50).mean()
-        price['ma200'] = price.close.rolling(200).mean()
+        try:
+            print(f"Called on : {pd.Timestamp(int(time.time()), unit='s')}")
+            price = self.fetch()
+            price['ma50'] = price.close.rolling(50).mean()
+            price['ma200'] = price.close.rolling(200).mean()
 
-        last2 = price.iloc[-3]
-        last = price.iloc[-2]
-        if (last.ma50 > last.ma200) and (last2.ma50 <= last2.ma200):
-            print('Uptrend signal has been spotted ===> Notifying User ...')
-            signal = {'status': 'buy', 'price': price.close.iloc[-1]}
-            self.notify(signal)
+            last2 = price.iloc[-3]
+            last = price.iloc[-2]
+            if (last.ma50 > last.ma200) and (last2.ma50 <= last2.ma200):
+                print('Uptrend signal has been spotted ===> Notifying User ...')
+                signal = {'status': 'buy', 'price': price.close.iloc[-1]}
+                self.notify(signal)
 
-        elif (last.ma50 < last.ma200) and (last2.ma50 >= last2.ma200):
-            print('Downtrend signal has been spotted ===> Notifying User ...')
-            signal = {'status': 'sell', 'price': price.close.iloc[-1]}
-            self.notify(signal)
+            elif (last.ma50 < last.ma200) and (last2.ma50 >= last2.ma200):
+                print('Downtrend signal has been spotted ===> Notifying User ...')
+                signal = {'status': 'sell', 'price': price.close.iloc[-1]}
+                self.notify(signal)
 
-        else:
-            self.send_message(f"No signal has been spotted on {self.symbol}\n{pd.Timestamp(int(time.time()), unit='s')}")
-            print('No signal has been spotted')
+            else:
+                self.send_message(f"No signal has been spotted on {self.symbol}\n{pd.Timestamp(int(time.time()), unit='s')}")
+                print('No signal has been spotted')
+        except Exception as e:
+            print('Exception in FETCH')
+            print(e)
 
     def send_message(self, message):
         params = f"?chat_id={self.chat_id}&text={message}"
