@@ -38,4 +38,4 @@ def run():
 
 @application.route("/")
 def index():
-    return "Hello from Analysor Agent!"
+    return "Hello from Pico Agent!"
