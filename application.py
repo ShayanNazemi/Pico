@@ -4,8 +4,14 @@ import pandas as pd
 from MACrossNotifier import MACrossNotifier
 
 if __name__ == '__main__':
-    btc_notifier = MACrossNotifier('BTCUSDT')
-    eth_notifier = MACrossNotifier('ETHUSDT')
+    notifier_queue = [
+        MACrossNotifier('BTCUSDT'),
+        MACrossNotifier('ETHUSDT'),
+        MACrossNotifier('XRPUSDT'),
+        MACrossNotifier('DOGEUSDT'),
+        MACrossNotifier('ETCUSDT'),
+        MACrossNotifier('BNBUSDT')
+    ]
 
     try:
         last_call = pd.Timestamp(0)
@@ -16,11 +22,12 @@ if __name__ == '__main__':
             if m % 5 == 0 and 0 < s < 2:
                 if pd.Timestamp(time.time(), unit='s') - last_call > pd.Timedelta(seconds=100):
                     last_call = pd.Timestamp(time.time(), unit='s')
-                    t_btc = threading.Thread(target=btc_notifier.signal)
-                    t_eth = threading.Thread(target=eth_notifier.signal)
+                    threads = []
+                    for notif in notifier_queue:
+                        threads.append(threading.Thread(target=notif.signal))
 
-                    t_btc.start()
-                    t_eth.start()
+                    for thread in threads:
+                        thread.start()
             time.sleep(1)
 
     except Exception as e:

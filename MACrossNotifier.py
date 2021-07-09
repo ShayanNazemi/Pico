@@ -47,6 +47,7 @@ class MACrossNotifier:
             else:
                 self.send_message(f"No signal has been spotted on {self.symbol}\n{pd.Timestamp(int(time.time()), unit='s')}")
                 print('No signal has been spotted')
+
         except Exception as e:
             print('Exception in FETCH')
             print(e)
