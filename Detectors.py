@@ -65,29 +65,29 @@ class MACrossDetector(Detector):
         last = price.iloc[-2]
         if (last.ma50 > last.ma200) and (last2.ma50 <= last2.ma200):
             print('Uptrend signal has been spotted ===> Notifying User ...')
-            signal = {'status': 'buy', 'price': price.close.iloc[-1], 'symbol': symbol}
-            self.notify(signal)
+            message = f"MA50-200 Cross ABOVE Detected\n50-200 Cross Above on {symbol}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n\tPrice : {price.close.iloc[-1]}"
+            self.send_message(message)
 
         elif (last.ma50 < last.ma200) and (last2.ma50 >= last2.ma200):
             print('Downtrend signal has been spotted ===> Notifying User ...')
             signal = {'status': 'sell', 'price': price.close.iloc[-1], 'symbol': symbol}
-            self.notify(signal)
+            message = f"MA50-200 Cross BELOW Detected\n50-200 Cross Below on {symbol}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n\tPrice : {price.close.iloc[-1]}"
+            self.send_message(message)
 
         else:
             if self.debug:
                 self.send_message(f"No signal has been spotted on {symbol}\n{pd.Timestamp(int(time.time()), unit='s')}")
             print('No signal has been spotted')
 
-    def notify(self, signal):
-        if signal['status'] == 'buy':
-            message = f"50-200 Cross Above on {signal['symbol']}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n\tPrice : {signal['price']}"
+        if (last2.close >= last.ma200) and (last.close < last.ma200):
+            print('Possible pullback to MA200 ===> Notifying User ...')
+            message = f"MA200 Pullback Detected (Cross BELOW)\n{symbol} Price Crossed Below MA200 \n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n\tPrice : {last.close}\n\tMA200 : {last.ma200}"
             self.send_message(message)
 
-        elif signal['status'] == 'sell':
-            message = f"50-200 Cross Below on {signal['symbol']}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n\tPrice : {signal['price']}"
+        elif (last2.close <= last.ma200) and (last.close > last.ma200):
+            print('Possible pullback to MA200 ===> Notifying User ...')
+            message = f"MA200 Pullback Detected (Cross ABOVE)\n{symbol} Price Crossed Above MA200 \n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n\tPrice : {last.close}\n\tMA200 : {last.ma200}"
             self.send_message(message)
-        else:
-            pass
 
     def signal_all(self):
         thread_queue = []
