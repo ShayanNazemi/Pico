@@ -65,12 +65,12 @@ class MACrossDetector(Detector):
         last = price.iloc[-2]
         if (last.ma50 > last.ma200) and (last2.ma50 <= last2.ma200):
             print('Uptrend signal has been spotted ===> Notifying User ...')
-            signal = {'status': 'buy', 'price': price.close.iloc[-1]}
+            signal = {'status': 'buy', 'price': price.close.iloc[-1], 'symbol': symbol}
             self.notify(signal)
 
         elif (last.ma50 < last.ma200) and (last2.ma50 >= last2.ma200):
             print('Downtrend signal has been spotted ===> Notifying User ...')
-            signal = {'status': 'sell', 'price': price.close.iloc[-1]}
+            signal = {'status': 'sell', 'price': price.close.iloc[-1], 'symbol': symbol}
             self.notify(signal)
 
         else:
@@ -79,11 +79,11 @@ class MACrossDetector(Detector):
 
     def notify(self, signal):
         if signal['status'] == 'buy':
-            message = f"50-200 Cross Above on {self.symbol}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n\tPrice : {signal['price']}"
+            message = f"50-200 Cross Above on {signal['symbol']}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n\tPrice : {signal['price']}"
             self.send_message(message)
 
         elif signal['status'] == 'sell':
-            message = f"50-200 Cross Below on {self.symbol}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n\tPrice : {signal['price']}"
+            message = f"50-200 Cross Below on {signal['symbol']}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n\tPrice : {signal['price']}"
             self.send_message(message)
         else:
             pass
