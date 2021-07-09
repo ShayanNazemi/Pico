@@ -7,8 +7,9 @@ from binance.client import Client
 
 
 class Detector:
-    def __init__(self, symbols):
+    def __init__(self, symbols, debug):
         self.symbols = [symbol.upper() for symbol in symbols]
+        self.debug = debug
         self.API_KEY = 'hACyfH2WFLuhlGC5wecVHF9l1MokEQ6OPKYq5GjMrIjPl8LtTQ2I21U69Kp1KU5n'
         self.SECRET_KEY = 'kO53EX9Az4zT1nCYJbVhUa0ab6jDelxqTIvCBIK8704Y1aodnilEc9Upl8fx5ORW'
 
@@ -40,9 +41,8 @@ class Detector:
 
 
 class MACrossDetector(Detector):
-    def __init__(self, symbols):
-        print(symbols)
-        super().__init__(symbols)
+    def __init__(self, symbols, debug):
+        super().__init__(symbols, debug)
 
     def fetch(self, symbol):
         t = "1 day ago UTC"
@@ -74,7 +74,8 @@ class MACrossDetector(Detector):
             self.notify(signal)
 
         else:
-            self.send_message(f"No signal has been spotted on {symbol}\n{pd.Timestamp(int(time.time()), unit='s')}")
+            if self.debug:
+                self.send_message(f"No signal has been spotted on {symbol}\n{pd.Timestamp(int(time.time()), unit='s')}")
             print('No signal has been spotted')
 
     def notify(self, signal):

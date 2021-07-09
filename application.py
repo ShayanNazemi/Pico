@@ -3,7 +3,7 @@ import pandas as pd
 from Detectors import MACrossDetector
 
 if __name__ == '__main__':
-    detector = MACrossDetector(['BTCUSDT', 'ETHUSDT', 'XRPUSDT', 'DOGEUSDT', 'ETCUSDT', 'BNBUSDT'])
+    detector = MACrossDetector(['BTCUSDT', 'ETHUSDT', 'XRPUSDT', 'DOGEUSDT', 'ETCUSDT', 'BNBUSDT'], debug=True)
     try:
         last_call = pd.Timestamp(0)
         while True:
