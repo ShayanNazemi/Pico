@@ -55,7 +55,6 @@ class MACrossDetector(Detector):
         return klines
 
     def signal(self, symbol):
-        # try:
         print(f"Called on : {pd.Timestamp(int(time.time()), unit='s')}")
         price = self.fetch(symbol)
         price['ma50'] = price.close.rolling(50).mean()
@@ -76,18 +75,22 @@ class MACrossDetector(Detector):
 
         else:
             if self.debug:
-                self.send_message(f"No signal has been spotted on {symbol}\n{pd.Timestamp(int(time.time()), unit='s')}")
-            print('No signal has been spotted')
+                self.send_message(f"No MA50-200 Cross signal has been detected on {symbol}\n{pd.Timestamp(int(time.time()), unit='s')}")
+            print('No MA50-200 cross has been detected')
 
-        if (last2.close >= last.ma200) and (last.close < last.ma200):
+        if (last2.close >= last2.ma200) and (last.close < last.ma200):
             print('Possible pullback to MA200 ===> Notifying User ...')
             message = f"MA200 Pullback Detected (Cross BELOW)\n{symbol} Price Crossed Below MA200 \n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n\tPrice : {last.close}\n\tMA200 : {last.ma200}"
             self.send_message(message)
 
-        elif (last2.close <= last.ma200) and (last.close > last.ma200):
+        elif (last2.close <= last2.ma200) and (last.close > last.ma200):
             print('Possible pullback to MA200 ===> Notifying User ...')
             message = f"MA200 Pullback Detected (Cross ABOVE)\n{symbol} Price Crossed Above MA200 \n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n\tPrice : {last.close}\n\tMA200 : {last.ma200}"
             self.send_message(message)
+        else:
+            if self.debug:
+                self.send_message(f"No MA200 pullback has been detected on {symbol}\n{pd.Timestamp(int(time.time()), unit='s')}")
+            print('No MA200 pullback has been detected')
 
     def signal_all(self):
         thread_queue = []
