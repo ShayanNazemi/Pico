@@ -3,24 +3,17 @@ import time
 import threading
 import requests
 from abc import abstractmethod
-from binance.client import Client
+from DataHandler import DataHandler
 
 
 class Detector:
     def __init__(self, symbols, debug):
         self.symbols = [symbol.upper() for symbol in symbols]
         self.debug = debug
-        self.API_KEY = 'hACyfH2WFLuhlGC5wecVHF9l1MokEQ6OPKYq5GjMrIjPl8LtTQ2I21U69Kp1KU5n'
-        self.SECRET_KEY = 'kO53EX9Az4zT1nCYJbVhUa0ab6jDelxqTIvCBIK8704Y1aodnilEc9Upl8fx5ORW'
 
         self.token = "1832200647:AAFPl1Bw7k8j6PiSCjJ9J9J2dLc4UX6Ki4Y"
         self.bot_endpoint = f"https://api.telegram.org/bot{self.token}/sendMessage"
         self.chat_id = "57466123"
-        self.client = Client(self.API_KEY, self.SECRET_KEY)
-
-    @abstractmethod
-    def fetch(self):
-        raise NotImplementedError
 
     @abstractmethod
     def signal(self):
@@ -40,43 +33,67 @@ class Detector:
             print('Failed to send notification!')
 
 
-class MACrossDetector(Detector):
+class DetectorManager:
+    def __init__(self, symbols, debug):
+        self.datahandler = DataHandler()
+        self.symbols = symbols
+        self.debug = debug
+        self.detectors = []
+
+    def add(self, detector_cls):
+        self.detectors.append(detector_cls(self.symbols, self.debug))
+
+    def detect(self, symbol):
+        data = self.datahandler.fetch(symbol)
+        for detector in self.detectors:
+            detector.signal(data, symbol)
+
+    def detect_all(self):
+        thread_queue = []
+        for s in self.symbols:
+            thread_queue.append(threading.Thread(target=self.detect, args=(s,)))
+
+        for thread in thread_queue:
+            thread.start()
+            time.sleep(0.5)
+
+
+class TrendShiftDetector(Detector):
     def __init__(self, symbols, debug):
         super().__init__(symbols, debug)
 
-    def fetch(self, symbol):
-        t = "1 day ago UTC"
-        klines = self.client.get_historical_klines(symbol, Client.KLINE_INTERVAL_5MINUTE, t)
-        klines = pd.DataFrame(klines).iloc[:, [0, 4, 6]].astype(float)
-        klines.columns = ['t', 'close', 't_close']
-        klines.t = pd.to_datetime(klines.t, unit='ms')
-        klines.t_close = pd.to_datetime(klines.t_close, unit='ms')
-        klines.set_index('t', inplace=True)
-        return klines
-
-    def signal(self, symbol):
+    def signal(self, data, symbol):
         print(f"Called on : {pd.Timestamp(int(time.time()), unit='s')}")
-        price = self.fetch(symbol)
-        price['ma50'] = price.close.rolling(50).mean()
-        price['ma200'] = price.close.rolling(200).mean()
+        data['ma50'] = data.close.rolling(50).mean()
+        data['ma200'] = data.close.rolling(200).mean()
 
-        last2 = price.iloc[-3]
-        last = price.iloc[-2]
+        last2 = data.iloc[-3]
+        last = data.iloc[-2]
         if (last.ma50 > last.ma200) and (last2.ma50 <= last2.ma200):
             print('Uptrend signal has been spotted ===> Notifying User ...')
-            message = f"MA50-200 Cross ABOVE Detected\n50-200 Cross Above on {symbol}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n\tPrice : {price.close.iloc[-1]}"
+            message = f"MA50-200 Cross ABOVE Detected\n50-200 Cross Above on {symbol}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n\tPrice : {data.close.iloc[-1]}"
             self.send_message(message)
 
         elif (last.ma50 < last.ma200) and (last2.ma50 >= last2.ma200):
             print('Downtrend signal has been spotted ===> Notifying User ...')
-            signal = {'status': 'sell', 'price': price.close.iloc[-1], 'symbol': symbol}
-            message = f"MA50-200 Cross BELOW Detected\n50-200 Cross Below on {symbol}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n\tPrice : {price.close.iloc[-1]}"
+            message = f"MA50-200 Cross BELOW Detected\n50-200 Cross Below on {symbol}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n\tPrice : {data.close.iloc[-1]}"
             self.send_message(message)
 
         else:
             if self.debug:
                 self.send_message(f"No MA50-200 Cross signal has been detected on {symbol}\n{pd.Timestamp(int(time.time()), unit='s')}")
             print('No MA50-200 cross has been detected')
+
+
+class MACrossDetector(Detector):
+    def __init__(self, symbols, debug):
+        super().__init__(symbols, debug)
+
+    def signal(self, data, symbol):
+        data['ma200'] = data.close.rolling(200).mean()
+
+        last2 = data.iloc[-3]
+        last = data.iloc[-2]
 
         if (last2.close >= last2.ma200) and (last.close < last.ma200):
             print('Possible pullback to MA200 ===> Notifying User ...')
@@ -92,11 +109,27 @@ class MACrossDetector(Detector):
                 self.send_message(f"No MA200 pullback has been detected on {symbol}\n{pd.Timestamp(int(time.time()), unit='s')}")
             print('No MA200 pullback has been detected')
 
-    def signal_all(self):
-        thread_queue = []
-        for s in self.symbols:
-            thread_queue.append(threading.Thread(target=self.signal, args=(s,)))
 
-        for t in thread_queue:
-            t.start()
-            time.sleep(0.5)
+class HammerDetector(Detector):
+    def __init__(self, symbols, debug):
+        super().__init__(symbols, debug)
+
+    def signal(self, data, symbol):
+        last = data.iloc[-2]
+        body = abs(last.close - last.open)
+        shadow_up = abs(last.high - last.close) if last.close >= last.open else abs(last.high - last.open)
+        shadow_down = abs(last.open - last.low) if last.close >= last.open else abs(last.close - last.low)
+        if (shadow_up >= 5 * body) and (body >= 5 * shadow_down):
+            # Shooting Star Candle
+            print('Shooting star candle detected ===> Notifying User ...')
+            message = f"Shooting star candle detected on {symbol}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}"
+            self.send_message(message)
+        elif (shadow_down >= 5 * body) and (body >= 5 * shadow_up):
+            # Hammer Candle
+            print('Hammer candle detected ===> Notifying User ...')
+            message = f"Hammer candle detected on {symbol}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}"
+            self.send_message(message)
+        else:
+            if self.debug:
+                self.send_message(f"No Hammer or Shooting start candle has been detected on {symbol}\n{pd.Timestamp(int(time.time()), unit='s')}")
+            print('No Shooting Star nor Hammer candle has been detected')
