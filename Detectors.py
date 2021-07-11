@@ -2,6 +2,8 @@ import pandas as pd
 import time
 import threading
 import requests
+from ta.momentum import rsi
+from zigzag import *
 from abc import abstractmethod
 from DataHandler import DataHandler
 
@@ -136,3 +138,29 @@ class HammerDetector(Detector):
             if self.debug:
                 self.send_message(f"No Hammer or Shooting start candle has been detected on {symbol}\n{pd.Timestamp(int(time.time()), unit='s')}")
             self.log('No Shooting Star nor Hammer candle has been detected')
+
+
+class DivergenceDetector(Detector):
+    def __init__(self, symbols, debug):
+        super().__init__(symbols, debug, 'RSI Divergence')
+
+    def signal(self, data, symbol):
+        rsi_ = rsi(data.close).dropna()
+        rsi_pivots = peak_valley_pivots(rsi_, 0.1, -0.1)
+        peaks, valleys = rsi_pivots == 1, rsi_pivots == -1
+
+        print(rsi_[peaks][-2], rsi_[peaks][-1], data.loc[rsi_.index, 'close'][peaks][-2], data.loc[rsi_.index, 'close'][peaks][-1])
+        if rsi_[peaks][-2] > rsi_[peaks][-1] and data.loc[rsi_.index, 'close'][peaks][-2] < data.loc[rsi_.index, 'close'][peaks][-1]:
+            self.log('RSI Divergence on PEAK detected ===> Notifying User ...')
+            message = f"RSI Divergence on PEAK has been detected on {symbol}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}"
+            self.send_message(message)
+
+        elif rsi_[peaks][-2] < rsi_[peaks][-1] and data.loc[rsi_.index, 'close'][peaks][-2] > data.loc[rsi_.index, 'close'][peaks][-1]:
+            self.log('RSI Divergence on VALLEY detected ===> Notifying User ...')
+            message = f"RSI Divergence on VALLEY has been detected on {symbol}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}"
+            self.send_message(message)
+
+        else:
+            if self.debug:
+                self.send_message(f"No RSI Divergence has been detected on {symbol}\n{pd.Timestamp(int(time.time()), unit='s')}")
+            self.log('No RSI Divergence has been detected')

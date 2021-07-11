@@ -1,12 +1,11 @@
-import time
-import pandas as pd
-from Detectors import DetectorManager, TrendShiftDetector, MACrossDetector, HammerDetector
+from Detectors import *
 
 if __name__ == '__main__':
-    manager = DetectorManager(['BTCUSDT', 'ETHUSDT', 'XRPUSDT', 'DOGEUSDT', 'ETCUSDT', 'BNBUSDT'], debug=False)
+    manager = DetectorManager(['BTCUSDT', 'ETHUSDT', 'BNBUSDT'], debug=False)
     manager.add(TrendShiftDetector)
     manager.add(MACrossDetector)
     manager.add(HammerDetector)
+    manager.add(DivergenceDetector)
 
     try:
         last_call = pd.Timestamp(0)
