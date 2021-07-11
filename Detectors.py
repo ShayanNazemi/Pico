@@ -145,7 +145,7 @@ class DivergenceDetector(Detector):
         super().__init__(symbols, debug, 'RSI Divergence')
 
     def signal(self, data, symbol):
-        rsi_ = rsi(data.close).dropna()
+        rsi_ = rsi(data.iloc[:-1].close).dropna()
         rsi_pivots = peak_valley_pivots(rsi_, 0.1, -0.1)
         peaks, valleys = rsi_pivots == 1, rsi_pivots == -1
 
