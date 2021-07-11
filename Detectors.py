@@ -149,15 +149,14 @@ class DivergenceDetector(Detector):
         rsi_pivots = peak_valley_pivots(rsi_, 0.1, -0.1)
         peaks, valleys = rsi_pivots == 1, rsi_pivots == -1
 
-        print(rsi_[peaks][-2], rsi_[peaks][-1], data.loc[rsi_.index, 'close'][peaks][-2], data.loc[rsi_.index, 'close'][peaks][-1])
         if rsi_[peaks][-2] > rsi_[peaks][-1] and data.loc[rsi_.index, 'close'][peaks][-2] < data.loc[rsi_.index, 'close'][peaks][-1]:
             self.log('RSI Divergence on PEAK detected ===> Notifying User ...')
-            message = f"RSI Divergence on PEAK has been detected on {symbol}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}"
+            message = f"RSI Divergence on PEAK has been detected on {symbol}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n\tFirst Peak : {rsi_[peaks].index[-2]}\n\tSecond Peak : {rsi_[peaks].index[-1]}"
             self.send_message(message)
 
-        elif rsi_[peaks][-2] < rsi_[peaks][-1] and data.loc[rsi_.index, 'close'][peaks][-2] > data.loc[rsi_.index, 'close'][peaks][-1]:
+        elif rsi_[valleys][-2] < rsi_[valleys][-1] and data.loc[rsi_.index, 'close'][valleys][-2] > data.loc[rsi_.index, 'close'][valleys][-1]:
             self.log('RSI Divergence on VALLEY detected ===> Notifying User ...')
-            message = f"RSI Divergence on VALLEY has been detected on {symbol}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}"
+            message = f"RSI Divergence on VALLEY has been detected on {symbol}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n\tFirst Valley : {rsi_[valleys].index[-2]}\n\tSecond Valley : {rsi_[valleys].index[-1]}"
             self.send_message(message)
 
         else:
