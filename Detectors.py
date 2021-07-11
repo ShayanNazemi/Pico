@@ -3,7 +3,7 @@ import time
 import threading
 import requests
 from ta.momentum import rsi
-from zigzag import *
+from utils import *
 from abc import abstractmethod
 from DataHandler import DataHandler
 

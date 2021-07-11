@@ -15,5 +15,3 @@ Werkzeug==1.0.1
 requests
 python-binance
 ta
-zigzag
-Cython
