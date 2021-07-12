@@ -5,7 +5,7 @@ if __name__ == '__main__':
     manager.add(TrendShiftDetector)
     manager.add(MACrossDetector)
     manager.add(HammerDetector)
-    manager.add(DivergenceDetector)
+    # manager.add(DivergenceDetector)
 
     try:
         last_call = pd.Timestamp(0)
