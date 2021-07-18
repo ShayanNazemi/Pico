@@ -173,8 +173,8 @@ class BBDetector(Detector):
 
     def signal(self, data, symbol):
         data_ = data.iloc[:-1].close
-        ma = data_.rolling(self.ma_window).mean()
-        std = data_.rolling(self.ma_window).std()
+        ma = data_.rolling(self.ma_window).mean().iloc[-1]
+        std = data_.rolling(self.ma_window).std().iloc[-1]
         ub = ma + self.bb_dev * std
         lb = ma - self.bb_dev * std
 
