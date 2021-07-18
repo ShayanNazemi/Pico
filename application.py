@@ -6,7 +6,7 @@ if __name__ == '__main__':
     manager.add(MACrossDetector)
     manager.add(HammerDetector)
     manager.add(BBDetector)
-    # manager.add(DivergenceDetector)
+    manager.add(ThreeMACross)
 
     try:
         last_call = pd.Timestamp(0)
