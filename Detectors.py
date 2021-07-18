@@ -9,17 +9,18 @@ from DataHandler import DataHandler
 
 
 class Messenger:
-    def __init__(self):
-        self.message = None
+    def __init__(self, name):
+        self.message = {}
+        self.name = name
 
-    def set(self, message):
-        self.message = message
+    def set(self, message, symbol):
+        self.message[symbol] = f"({self.name.upper()}) {message}"
 
     def add(self, message_queue):
         message_queue.append(self.message)
 
     def clear(self):
-        self.message = ""
+        self.message = {}
 
 
 class Detector:
@@ -27,25 +28,11 @@ class Detector:
         self.symbols = [symbol.upper() for symbol in symbols]
         self.debug = debug
         self.name = name
-        self.messenger = Messenger()
+        self.messenger = Messenger(name)
 
     @abstractmethod
     def signal(self):
         raise NotImplementedError
-
-    # def send_message(self, message):
-    #     message = f"* {self.name}\n{message}"
-    #     params = f"?chat_id={self.chat_id}&text={message}"
-    #     print(message)
-    #     try:
-    #         res = requests.get(self.bot_endpoint + params, timeout=10)
-    #     except Exception as e:
-    #         # one more try
-    #         res = requests.get(self.bot_endpoint + params, timeout=10)
-    #     if res.status_code == 200:
-    #         print('Notification sent successfully ...')
-    #     else:
-    #         print('Failed to send notification!')
 
     def log(self, string_):
         print(f"({self.name.upper()}) {string_}")
@@ -91,16 +78,25 @@ class DetectorManager:
         for d in self.detectors:
             d.messenger.clear()
 
+        self.message_queue = []
+
     def send_message(self):
         message = ""
-        for msg in self.message_queue:
-            if msg:
-                message += f"{msg}\n"
+        message_df = pd.DataFrame(self.message_queue)
 
-        print(f"From Detector Manager :\n{message}")
+        bullet = "\ud83d\udd34".encode('utf-16', 'surrogatepass').decode('utf-16')
+        header_bullet = "\ud83d\udd08".encode('utf-16', 'surrogatepass').decode('utf-16')
+
+        for col in message_df.columns:
+            message_symbol = "\n".join(message_df[col].dropna().to_list())
+            if message_symbol:
+                message += f"{bullet} {col.upper()}\n{message_symbol}\n\n"
+
         if message:
+            message = f"{header_bullet} Detection results - {pd.Timestamp(int(time.time()), unit='s')}\n\n{message}"
+            print(f"From Detector Manager :\n{message}")
+
             params = f"?chat_id={self.chat_id}&text={message}"
-            print(message)
             try:
                 res = requests.get(self.bot_endpoint + params, timeout=10)
             except Exception as e:
@@ -124,20 +120,17 @@ class TrendShiftDetector(Detector):
         last = data.iloc[-2]
         if (last.ma50 > last.ma200) and (last2.ma50 <= last2.ma200):
             self.log('Uptrend signal has been spotted ===> Notifying User ...')
-            message = f"MA50-200 Cross ABOVE Detected\n50-200 Cross Above on {symbol}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n\tPrice : {data.close.iloc[-1]}"
-            self.messenger.set(message)
-            # self.send_message(message)
+            message = f"Cross ABOVE Detected \n\tPrice : {data.close.iloc[-1]}"
+            self.messenger.set(message, symbol)
 
         elif (last.ma50 < last.ma200) and (last2.ma50 >= last2.ma200):
             self.log('Downtrend signal has been spotted ===> Notifying User ...')
-            message = f"MA50-200 Cross BELOW Detected\n50-200 Cross Below on {symbol}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n\tPrice : {data.close.iloc[-1]}"
-            self.messenger.set(message)
-            # self.send_message(message)
+            message = f"Cross BELOW Detected\n\tPrice : {data.close.iloc[-1]}"
+            self.messenger.set(message, symbol)
 
         else:
             if self.debug:
-                self.messenger.set(f"No MA50-200 Cross signal has been detected on {symbol}\n{pd.Timestamp(int(time.time()), unit='s')}")
-                # self.send_message(f"No MA50-200 Cross signal has been detected on {symbol}\n{pd.Timestamp(int(time.time()), unit='s')}")
+                self.messenger.set(f"No Cross signal has been detected", symbol)
 
             self.log('No MA50-200 cross has been detected')
 
@@ -154,19 +147,16 @@ class MACrossDetector(Detector):
 
         if (last2.close >= last2.ma200) and (last.close < last.ma200):
             self.log('Possible pullback to MA200 ===> Notifying User ...')
-            message = f"MA200 Pullback Detected (Cross BELOW)\n{symbol} Price Crossed Below MA200 \n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n\tPrice : {last.close}\n\tMA200 : {last.ma200}"
-            self.messenger.set(message)
-            # self.send_message(message)
+            message = f"Price Crossed Below MA200\n\tPrice : {last.close}\n\tMA200 : {last.ma200}"
+            self.messenger.set(message, symbol)
 
         elif (last2.close <= last2.ma200) and (last.close > last.ma200):
             self.log('Possible pullback to MA200 ===> Notifying User ...')
-            message = f"MA200 Pullback Detected (Cross ABOVE)\n{symbol} Price Crossed Above MA200 \n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n\tPrice : {last.close}\n\tMA200 : {last.ma200}"
-            self.messenger.set(message)
-            # self.send_message(message)
+            message = f"Price Crossed Above MA200\n\tPrice : {last.close}\n\tMA200 : {last.ma200}"
+            self.messenger.set(message, symbol)
         else:
             if self.debug:
-                self.messenger.set(f"No MA200 pullback has been detected on {symbol}\n{pd.Timestamp(int(time.time()), unit='s')}")
-                # self.send_message(f"No MA200 pullback has been detected on {symbol}\n{pd.Timestamp(int(time.time()), unit='s')}")
+                self.messenger.set(f"No MA200 pullback has been detected", symbol)
             self.log('No MA200 pullback has been detected')
 
 
@@ -182,19 +172,16 @@ class HammerDetector(Detector):
         if (shadow_up >= 5 * body) and (body >= 5 * shadow_down):
             # Shooting Star Candle
             self.log('Shooting star candle detected ===> Notifying User ...')
-            message = f"Shooting star candle detected on {symbol}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}"
-            self.messenger.set(message)
-            # self.send_message(message)
+            message = f"Shooting star candle detected"
+            self.messenger.set(message, symbol)
         elif (shadow_down >= 5 * body) and (body >= 5 * shadow_up):
             # Hammer Candle
             self.log('Hammer candle detected ===> Notifying User ...')
-            message = f"Hammer candle detected on {symbol}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}"
-            self.messenger.set(message)
-            # self.send_message(message)
+            message = f"Hammer candle detected"
+            self.messenger.set(message, symbol)
         else:
             if self.debug:
-                self.messenger.set(f"No Hammer or Shooting start candle has been detected on {symbol}\n{pd.Timestamp(int(time.time()), unit='s')}")
-                # self.send_message(f"No Hammer or Shooting start candle has been detected on {symbol}\n{pd.Timestamp(int(time.time()), unit='s')}")
+                self.messenger.set(f"No Hammer or Shooting start candle has been detected", symbol)
             self.log('No Shooting Star nor Hammer candle has been detected')
 
 
@@ -209,20 +196,15 @@ class DivergenceDetector(Detector):
 
         if rsi_[peaks][-2] > rsi_[peaks][-1] and data.loc[rsi_.index, 'close'][peaks][-2] < data.loc[rsi_.index, 'close'][peaks][-1]:
             self.log('RSI Divergence on PEAK detected ===> Notifying User ...')
-            message = f"RSI Divergence on PEAK has been detected on {symbol}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n\tFirst Peak : {rsi_[peaks].index[-2]}\n\tSecond Peak : {rsi_[peaks].index[-1]}"
-            self.messenger.set(message)
-            # self.send_message(message)
-
+            message = f"RSI Divergence on PEAK has been detected\n\tFirst Peak : {rsi_[peaks].index[-2]}\n\tSecond Peak : {rsi_[peaks].index[-1]}"
+            self.messenger.set(message, symbol)
         elif rsi_[valleys][-2] < rsi_[valleys][-1] and data.loc[rsi_.index, 'close'][valleys][-2] > data.loc[rsi_.index, 'close'][valleys][-1]:
             self.log('RSI Divergence on VALLEY detected ===> Notifying User ...')
-            message = f"RSI Divergence on VALLEY has been detected on {symbol}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n\tFirst Valley : {rsi_[valleys].index[-2]}\n\tSecond Valley : {rsi_[valleys].index[-1]}"
-            self.messenger.set(message)
-            # self.send_message(message)
-
+            message = f"RSI Divergence on VALLEY has been detected\n\tFirst Valley : {rsi_[valleys].index[-2]}\n\tSecond Valley : {rsi_[valleys].index[-1]}"
+            self.messenger.set(message, symbol)
         else:
             if self.debug:
-                # self.send_message(f"No RSI Divergence has been detected on {symbol}\n{pd.Timestamp(int(time.time()), unit='s')}")
-                self.messenger.set(f"No RSI Divergence has been detected on {symbol}\n{pd.Timestamp(int(time.time()), unit='s')}")
+                self.messenger.set(f"No RSI Divergence has been detected", symbol)
             self.log('No RSI Divergence has been detected')
 
 
@@ -244,25 +226,20 @@ class BBDetector(Detector):
         if last.low < lb:
             self.log('Price crossed below BB4 lower bound')
             if last.close < lb:
-                message = f"Price crossed and closed BELOW BB4 lower bound in {symbol}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n"
+                message = f"Price crossed and closed BELOW BB4 lower bound"
             else:
-                message = f"Price crossed BELOW BB4 lower bound in {symbol}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n"
-            self.messenger.set(message)
-            # self.send_message(message)
-
+                message = f"Price crossed BELOW BB4 lower bound"
+            self.messenger.set(message, symbol)
         elif last.high > ub:
             self.log('Price crossed above BB4 upper bound')
             if last.close > ub:
-                message = f"Price crossed and closed ABOVE BB4 upper bound in {symbol}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n"
+                message = f"Price crossed and closed ABOVE BB4 upper bound"
             else:
-                message = f"Price crossed ABOVE BB4 upper bound in {symbol}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n"
-            self.messenger.set(message)
-            # self.send_message(message)
-
+                message = f"Price crossed ABOVE BB4 upper bound"
+            self.messenger.set(message, symbol)
         else:
             if self.debug:
-                self.messenger.set(f"No BB4 crossing has been detected on {symbol}\n{pd.Timestamp(int(time.time()), unit='s')}")
-                # self.send_message(f"No BB4 crossing has been detected on {symbol}\n{pd.Timestamp(int(time.time()), unit='s')}")
+                self.messenger.set(f"No BB4 crossing has been detected", symbol)
             self.log('No BB4 crossing has been detected')
 
 
@@ -281,18 +258,15 @@ class ThreeMACross(Detector):
 
         if (ma1.iloc[-1] > ma2.iloc[-1] > ma3.iloc[-1]) and (not (ma1.iloc[-2] > ma2.iloc[-2] > ma3.iloc[-2])):
             self.log('Three MA uptrend formation detected')
-            message = f"Three MA uptrend formation detected in {symbol}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n"
-            self.messenger.set(message)
-            # self.send_message(message)
+            message = f"Three MA uptrend formation detected"
+            self.messenger.set(message, symbol)
 
         elif (ma1.iloc[-1] < ma2.iloc[-1] < ma3.iloc[-1]) and (not (ma1.iloc[-2] < ma2.iloc[-2] < ma3.iloc[-2])):
             self.log('Three MA downtrend formation detected')
-            message = f"Three MA downtrend formation detected in {symbol}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n"
-            self.messenger.set(message)
-            # self.send_message(message)
+            message = f"Three MA downtrend formation detected"
+            self.messenger.set(message, symbol)
 
         else:
             if self.debug:
-                self.messenger.set(f"No three MA formation has been detected on {symbol}\n{pd.Timestamp(int(time.time()), unit='s')}")
-                # self.send_message(f"No three MA formation has been detected on {symbol}\n{pd.Timestamp(int(time.time()), unit='s')}")
+                self.messenger.set(f"No three MA formation has been detected", symbol)
             self.log('No three MA formation has been detected')

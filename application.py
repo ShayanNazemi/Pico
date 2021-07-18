@@ -1,7 +1,7 @@
 from Detectors import *
 
 if __name__ == '__main__':
-    manager = DetectorManager(['BTCUSDT', 'ETHUSDT', 'BNBUSDT'], debug=False)
+    manager = DetectorManager(['BTCUSDT', 'ETHUSDT', 'BNBUSDT'], debug=True)
     manager.add(TrendShiftDetector)
     manager.add(MACrossDetector)
     manager.add(HammerDetector)
@@ -22,4 +22,5 @@ if __name__ == '__main__':
             time.sleep(1)
 
     except Exception as e:
+        print(e)
         print('Agent Stopped!')
