@@ -163,3 +163,40 @@ class DivergenceDetector(Detector):
             if self.debug:
                 self.send_message(f"No RSI Divergence has been detected on {symbol}\n{pd.Timestamp(int(time.time()), unit='s')}")
             self.log('No RSI Divergence has been detected')
+
+
+class BBDetector(Detector):
+    def __init__(self, symbols, debug):
+        super().__init__(symbols, debug, 'Bollinger Bands')
+        self.ma_window = 24
+        self.bb_dev = 3.9
+
+    def signal(self, data, symbol):
+        data_ = data.iloc[:-1].close
+        ma = data_.rolling(self.ma_window).mean()
+        std = data_.rolling(self.ma_window).std()
+        ub = ma + self.bb_dev * std
+        lb = ma - self.bb_dev * std
+
+        last = data.iloc[-2]
+
+        if last.low < lb:
+            self.log('Price crossed below BB4 lower bound')
+            if last.close < lb:
+                message = f"Price crossed and closed BELOW BB4 lower bound in {symbol}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n"
+            else:
+                message = f"Price crossed BELOW BB4 lower bound in {symbol}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n"
+            self.send_message(message)
+
+        elif last.high > ub:
+            self.log('Price crossed above BB4 upper bound')
+            if last.close > ub:
+                message = f"Price crossed and closed ABOVE BB4 upper bound in {symbol}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n"
+            else:
+                message = f"Price crossed ABOVE BB4 upper bound in {symbol}\n\tTime : {pd.Timestamp(int(time.time()), unit='s')}\n"
+            self.send_message(message)
+
+        else:
+            if self.debug:
+                self.send_message(f"No BB4 crossing has been detected on {symbol}\n{pd.Timestamp(int(time.time()), unit='s')}")
+            self.log('No BB4 crossing has been detected')
