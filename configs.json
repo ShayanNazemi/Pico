@@ -6,6 +6,6 @@
   "ma_lookback": "2 day ago UTC",
   "bb_dev": 2,
   "lvg": 5,
-  "api_key": "hACyfH2WFLuhlGC5wecVHF9l1MokEQ6OPKYq5GjMrIjPl8LtTQ2I21U69Kp1KU5n",
-  "secret_key": "kO53EX9Az4zT1nCYJbVhUa0ab6jDelxqTIvCBIK8704Y1aodnilEc9Upl8fx5ORW"
+  "api_key": "API_KEY",
+  "secret_key": "SECRET_KEY"
 }
